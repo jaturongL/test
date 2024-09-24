@@ -1,0 +1,15 @@
+SET DEFINE OFF;
+
+DELETE TREPAPP2 WHERE CODAPP = 'HRTRZ1X';
+
+Insert into TREPAPP2 (CODAPP,KEYCOLUMN,STYLE_COLUMN,STYLE_DATA,DTECREATE,CODCREATE,DTEUPD,CODUSER) values ('HRTRZ1X','codcours','text-align: center; vertical-align: middle; width: 80px;','text-align: center;',to_date('18/08/2024 23:43:07','dd/mm/yyyy hh24:mi:ss'),null,to_date('18/08/2024 23:43:47','dd/mm/yyyy hh24:mi:ss'),null);
+Insert into TREPAPP2 (CODAPP,KEYCOLUMN,STYLE_COLUMN,STYLE_DATA,DTECREATE,CODCREATE,DTEUPD,CODUSER) values ('HRTRZ1X','desc_codcours','text-align: center; vertical-align: middle; width: 300px;','text-align: left;',to_date('18/08/2024 23:43:07','dd/mm/yyyy hh24:mi:ss'),null,to_date('19/08/2024 00:11:10','dd/mm/yyyy hh24:mi:ss'),null);
+Insert into TREPAPP2 (CODAPP,KEYCOLUMN,STYLE_COLUMN,STYLE_DATA,DTECREATE,CODCREATE,DTEUPD,CODUSER) values ('HRTRZ1X','numclseq','text-align: center; vertical-align: middle; width: 80px;','text-align: center;',to_date('18/08/2024 23:43:07','dd/mm/yyyy hh24:mi:ss'),null,to_date('18/08/2024 23:45:23','dd/mm/yyyy hh24:mi:ss'),null);
+Insert into TREPAPP2 (CODAPP,KEYCOLUMN,STYLE_COLUMN,STYLE_DATA,DTECREATE,CODCREATE,DTEUPD,CODUSER) values ('HRTRZ1X','dtetrst','text-align: center; vertical-align: middle; width: 100px;','text-align: center;',to_date('18/08/2024 23:43:07','dd/mm/yyyy hh24:mi:ss'),null,to_date('18/08/2024 23:43:07','dd/mm/yyyy hh24:mi:ss'),null);
+Insert into TREPAPP2 (CODAPP,KEYCOLUMN,STYLE_COLUMN,STYLE_DATA,DTECREATE,CODCREATE,DTEUPD,CODUSER) values ('HRTRZ1X','dtetren','text-align: center; vertical-align: middle; width: 100px;','text-align: center;',to_date('18/08/2024 23:43:07','dd/mm/yyyy hh24:mi:ss'),null,to_date('18/08/2024 23:43:07','dd/mm/yyyy hh24:mi:ss'),null);
+Insert into TREPAPP2 (CODAPP,KEYCOLUMN,STYLE_COLUMN,STYLE_DATA,DTECREATE,CODCREATE,DTEUPD,CODUSER) values ('HRTRZ1X','qtyppc','text-align: center; vertical-align: middle; width: 100px;','text-align: center;',to_date('18/08/2024 23:43:07','dd/mm/yyyy hh24:mi:ss'),null,to_date('18/08/2024 23:43:07','dd/mm/yyyy hh24:mi:ss'),null);
+Insert into TREPAPP2 (CODAPP,KEYCOLUMN,STYLE_COLUMN,STYLE_DATA,DTECREATE,CODCREATE,DTEUPD,CODUSER) values ('HRTRZ1X','qtyempap','text-align: center; vertical-align: middle; width: 100px;','text-align: center;',to_date('18/08/2024 23:43:07','dd/mm/yyyy hh24:mi:ss'),null,to_date('18/08/2024 23:43:07','dd/mm/yyyy hh24:mi:ss'),null);
+Insert into TREPAPP2 (CODAPP,KEYCOLUMN,STYLE_COLUMN,STYLE_DATA,DTECREATE,CODCREATE,DTEUPD,CODUSER) values ('HRTRZ1X','fscore','text-align: center; vertical-align: middle; width: 100px;','text-align: center;',to_date('18/08/2024 23:43:08','dd/mm/yyyy hh24:mi:ss'),null,to_date('18/08/2024 23:43:08','dd/mm/yyyy hh24:mi:ss'),null);
+Insert into TREPAPP2 (CODAPP,KEYCOLUMN,STYLE_COLUMN,STYLE_DATA,DTECREATE,CODCREATE,DTEUPD,CODUSER) values ('HRTRZ1X','avgscore','text-align: center; vertical-align: middle; width: 100px;','text-align: center;',to_date('18/08/2024 23:43:08','dd/mm/yyyy hh24:mi:ss'),null,to_date('18/08/2024 23:43:08','dd/mm/yyyy hh24:mi:ss'),null);
+
+COMMIT;

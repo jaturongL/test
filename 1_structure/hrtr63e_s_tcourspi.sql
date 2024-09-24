@@ -1,0 +1,4 @@
+set define off;
+
+COMMENT ON COLUMN TCOURSAPI.QTYFSCOR IS 'คะแนนรวม';
+COMMENT ON COLUMN TCOURSAPI.QTYSCORE IS 'คะแนนเฉลี่ย';

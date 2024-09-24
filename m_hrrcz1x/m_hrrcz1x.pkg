@@ -1,0 +1,271 @@
+SET DEFINE OFF;
+create or replace PACKAGE "M_HRRCZ1X" AS
+		-- Site: MO-HAFU-HR2401
+    -- Author: 000566 PetePeerasak
+    -- Date updated: 22/08/2024
+    -- Comment: Generate Report
+
+    param_msg_error         varchar2(4000 char);
+    global_v_coduser        varchar2(100 char);
+    global_v_codempid       varchar2(100 char);
+    global_v_lang           varchar2(100 char) := '102';
+
+    global_v_zminlvl        number;
+    global_v_zwrklvl        number;
+    global_v_numlvlsalst    number;
+    global_v_numlvlsalen    number;
+    v_zupdsal               varchar2(4000 char);
+    v_chken                 varchar2(10 char);
+
+    --get index parameter
+    p_codcomp               tcenter.codcomp%type;
+    p_codpos                treqest2.codpos%type;
+    p_stdate                date;
+    p_endate                date;
+    --get detail paramters
+
+    procedure initial_value(json_str_input in clob);
+
+    procedure get_report(json_str_input in clob, json_str_output out clob);
+    procedure gen_report(json_str_output out clob);
+END M_HRRCZ1X;
+/
+
+create or replace PACKAGE BODY "M_HRRCZ1X" AS
+		-- Site: MO-HAFU-HR2401
+    -- Author: 000566 PetePeerasak
+    -- Date updated: 22/08/2024
+    -- Comment: Generate Report
+
+  procedure initial_value(json_str_input in clob) as
+   json_obj json_object_t;
+    begin
+        json_obj            := json_object_t(json_str_input);
+        global_v_coduser    := hcm_util.get_string_t(json_obj,'p_coduser');
+        global_v_codempid   := hcm_util.get_string_t(json_obj,'p_codempid');
+        global_v_lang       := hcm_util.get_string_t(json_obj,'p_lang');
+
+        p_codcomp           := upper(hcm_util.get_string_t(json_obj,'p_codcomp'));
+        p_codpos            := upper(hcm_util.get_string_t(json_obj,'p_codpos'));
+        p_stdate            := to_date(hcm_util.get_string_t(json_obj,'p_stdate'),'dd/mm/yyyy');
+        p_endate            := to_date(hcm_util.get_string_t(json_obj,'p_endate'),'dd/mm/yyyy');
+
+--         param_json          := hcm_util.get_json_t(json_obj,'param_json');
+        v_chken             := hcm_secur.get_v_chken;
+        hcm_secur.get_global_secur(global_v_coduser,global_v_zminlvl,global_v_zwrklvl,global_v_numlvlsalst,global_v_numlvlsalen);
+  end initial_value;
+
+  procedure get_report(json_str_input in clob,json_str_output out clob) as
+  begin
+    initial_value(json_str_input);
+
+    if param_msg_error is null then
+        gen_report(json_str_output);
+    end if;
+
+    if param_msg_error is not null then
+        json_str_output := get_response_message(null,param_msg_error,global_v_lang);
+        return;
+    end if;
+  exception when others then
+    param_msg_error := dbms_utility.format_error_stack||' '||dbms_utility.format_error_backtrace;
+    json_str_output := get_response_message('400',param_msg_error,global_v_lang);
+  end get_report;
+
+  procedure gen_report(json_str_output out clob) as
+    v_num_row         number := 0;
+    v_codappr         tapjobrq.codappr%type;
+
+    v_codempid        tjobreq.codempid%type;
+    v_dtereq          tjobreq.dtereq%type;
+    v_numseq          tjobreq.numseq%type;
+
+    TYPE hrrcz1x_report IS RECORD(
+      -- Begin Section 100
+      date_of_request         date,
+      requester               varchar2(60 char),
+      position_title          varchar2(60 char),
+      report_to               varchar2(60 char),
+      job_code                varchar2(60 char),
+      division_name           varchar2(60 char),
+      department_name         varchar2(60 char),
+      section_name            varchar2(60 char),
+      work_location           varchar2(60 char),          -- End Section 100
+
+      -- Begin Section 200
+      reason_for_request      number,
+
+      proposed_by_requester           varchar2(60 char),
+      proposed_date                   varchar2(60 char),
+      reviewed_by_department_manager  varchar2(60 char),
+      reviewed_by_date                date,
+      approved_status_approve         varchar2(1 char),
+      approved_director               varchar2(60 char),
+      approved_date                   date,
+      verified_by_human_resources     varchar2(60 char),
+      verified_by_date                date,                 -- End Section 200
+
+      -- End Section 400
+      filename                    varchar2(60 char),
+      file_organization           varchar2(60 char)
+    );
+
+    hrrcz1x           hrrcz1x_report;
+
+    cursor c_treqest is
+      select
+          a.numreqst,
+          a.codcomp,
+          a.dtereq,
+          b.codrearq as codrearq,
+         get_temploy_name(a.codemprq, global_v_lang) as desc_codemprq,
+         get_tpostn_name(b.codpos, global_v_lang) as desc_codpos,
+         get_tjobcode_name(b.codjob, global_v_lang) as job_code,
+         get_tcenter_name(hcm_util.get_codcomp_level(a.codcomp,2), global_v_lang) as division_name,
+         get_tcenter_name(hcm_util.get_codcomp_level(a.codcomp,3), global_v_lang) as department_name,
+         get_tcenter_name(hcm_util.get_codcomp_level(a.codcomp,4), global_v_lang) as section_name,
+         get_tcodec_name('TCODLOCA',b.codbrlc, global_v_lang) as work_location,
+         -- Begin Section 300
+         get_temploy_name(a.codemprq, global_v_lang) as approvetor,
+         case  when a.filename is not null then 'Y' else 'N' end as filename,
+         case  when a.fileorgch is not null then 'Y' else 'N' end as fileorgch
+        from treqest1 a, treqest2 b
+        where a.numreqst = b.numreqst
+          and a.codcomp like p_codcomp || '%'
+          and b.codpos = nvl(p_codpos, codpos)
+          and trunc(a.dtereq) between p_stdate and p_endate;
+  begin
+    for r_treqest in c_treqest loop
+      begin
+        select codempid, dtereq, numseq
+          into v_codempid, v_dtereq, v_numseq
+          from tjobreq
+          where numreqst = r_treqest.numreqst;
+      exception when others then
+        v_codempid  := '';
+        v_dtereq    := '';
+        v_numseq    := '';
+      end;
+
+      begin
+       select get_temploy_name(b.codappr, global_v_lang)
+          into v_codappr
+         from tjobreq a, tapjobrq b
+        where a.codempid = b.codempid
+          and a.dtereq = b.dtereq
+          and a.numseq = b.numseq
+          and a.numreqst = r_treqest.numreqst
+          and b.approvno = 1;
+      exception when others then
+        v_codappr := '';
+      end;
+
+      -- Department manager
+      begin
+        select get_temploy_name(codappr, global_v_lang), dteappr
+          into hrrcz1x.reviewed_by_department_manager, hrrcz1x.reviewed_by_date
+          from tapjobrq
+        where codempid = v_codempid
+          and dtereq = v_dtereq
+          and numseq = v_numseq
+          and approvno = 1;
+      exception when others then
+        hrrcz1x.reviewed_by_department_manager := '';
+        hrrcz1x.reviewed_by_date := null;
+      end;
+
+      -- Director
+      begin
+        select get_temploy_name(codappr, global_v_lang), dteappr , staappr
+          into hrrcz1x.approved_director, hrrcz1x.approved_date, hrrcz1x.approved_status_approve
+        from tapjobrq
+        where codempid = v_codempid
+         and dtereq = v_dtereq
+         and numseq = v_numseq
+         and approvno = 2;
+      exception when others then
+        hrrcz1x.approved_director       := '';
+        hrrcz1x.approved_date           := null;
+        hrrcz1x.approved_status_approve := '';
+      end;
+
+      -- Human Resources
+      begin
+        select get_temploy_name(codappr, global_v_lang), dteappr
+          into hrrcz1x.verified_by_human_resources, hrrcz1x.verified_by_date
+          from tapjobrq
+        where codempid = v_codempid
+          and dtereq = v_dtereq
+          and numseq = v_numseq
+          and approvno = 3;
+      exception when others then
+        hrrcz1x.verified_by_human_resources := '';
+        hrrcz1x.verified_by_date := null;
+      end;
+
+      begin
+        --> Begin Section 100
+        hrrcz1x.date_of_request   := r_treqest.dtereq;
+        hrrcz1x.requester         := r_treqest.desc_codemprq;
+        hrrcz1x.position_title    := r_treqest.desc_codpos;
+        hrrcz1x.report_to         := v_codappr;
+        hrrcz1x.job_code          := r_treqest.job_code;
+        hrrcz1x.division_name     := r_treqest.division_name;
+        hrrcz1x.department_name   := r_treqest.department_name;
+        hrrcz1x.section_name      := r_treqest.section_name;
+        hrrcz1x.work_location     := r_treqest.work_location;             --> End Section 100
+
+        --> Begin Section 200
+        hrrcz1x.reason_for_request      := r_treqest.codrearq;
+        hrrcz1x.proposed_by_requester   := r_treqest.desc_codemprq;
+        hrrcz1x.proposed_date           := to_char(r_treqest.dtereq, 'dd/mm/yyyy');
+        --> End Section 200
+
+        hrrcz1x.filename           := r_treqest.filename;
+        hrrcz1x.file_organization  := r_treqest.fileorgch;
+      exception when others then
+        null;
+      end;
+
+      begin
+        delete from ttemprpt
+          where  codempid = global_v_codempid
+          and codapp = 'HRRCZ1X';
+      exception when others then
+        null;
+      end;
+
+      begin
+        insert into ttemprpt(codempid, codapp, numseq, item1,
+           -- Section 100
+           item10, item11, item12, item13, item14, item15, item16, item17, item18, item19,
+           item20, item21, item22, item23, item24, item25, item26, item27, item28,
+           item40, item41
+        )
+           values(
+             global_v_codempid, 'HRRCZ1X' , v_num_row, 'HRRCZ1X',
+             -- Begin Section 100
+             hrrcz1x.date_of_request, hrrcz1x.requester, hrrcz1x.position_title, hrrcz1x.report_to, hrrcz1x.job_code, hrrcz1x.division_name, hrrcz1x.department_name, hrrcz1x.section_name, hrrcz1x.work_location, hrrcz1x.reason_for_request,
+             hrrcz1x.proposed_by_requester, hrrcz1x.proposed_date, hrrcz1x.reviewed_by_department_manager, hrrcz1x.reviewed_by_date, hrrcz1x.approved_status_approve, hrrcz1x.approved_director, hrrcz1x.approved_date, hrrcz1x.verified_by_human_resources, hrrcz1x.verified_by_date,
+             hrrcz1x.filename, hrrcz1x.file_organization
+           );
+
+        v_num_row := v_num_row + 1;
+      exception when others then
+        null;
+      end;
+    end loop;
+
+    if v_num_row > 0 then
+      json_str_output := get_response_message(null,param_msg_error,global_v_lang);
+      commit;
+    else
+      param_msg_error     := get_error_msg_php('HR2055', global_v_lang,'TREQEST1');
+    end if;
+  exception when others then
+    rollback;
+    param_msg_error := dbms_utility.format_error_stack||' '||dbms_utility.format_error_backtrace;
+    json_str_output := get_response_message('400',param_msg_error,global_v_lang);
+  end gen_report;
+END M_HRRCZ1X;
+/

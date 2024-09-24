@@ -1,0 +1,111 @@
+set define off;
+CREATE OR REPLACE package m_hrmsz9x as
+  -- Site: MO-HAFU-HR2401
+  -- Author: 000505 Adisak
+  -- Date updated: 19/08/2024
+  -- Comment: Implement report hrmsz9x
+
+  param_msg_error         varchar2(4000 char);
+  global_v_coduser        varchar2(100 char);
+  global_v_codempid       varchar2(100 char);
+  global_v_lang           varchar2(100 char) := '102';
+
+  global_v_zminlvl        number;
+  global_v_zwrklvl        number;
+  global_v_numlvlsalst    number;
+  global_v_numlvlsalen    number;
+  v_zupdsal               varchar2(4000 char);
+
+  p_codempid              temploy1.codempid%type;
+  p_codcomp               temploy1.codcomp%type;
+  p_dteyrest              number;
+  p_dteyreen              number;
+
+  procedure initial_value(json_str_input in clob);
+  procedure get_index(json_str_input in clob, json_str_output out clob);
+  procedure gen_index(json_str_output out clob);
+end m_hrmsz9x;
+/
+CREATE OR REPLACE package body m_hrmsz9x as
+    -- Site: MO-HAFU-HR2401
+    -- Author: 000505 Adisak
+    -- Date updated: 19/08/2024
+    -- Comment: Implement report hrmsz9x
+    procedure initial_value(json_str_input in clob) is
+        json_obj            json_object_t;
+    begin
+        json_obj            := json_object_t(json_str_input);
+        global_v_coduser    := hcm_util.get_string_t(json_obj,'p_coduser');
+        global_v_codempid   := hcm_util.get_string_t(json_obj,'p_codempid');
+        global_v_lang       := hcm_util.get_string_t(json_obj,'p_lang');
+
+        p_codempid          := hcm_util.get_string_t(json_obj,'p_codempid_query');
+        p_codcomp           := hcm_util.get_string_t(json_obj,'p_codcomp');
+        p_dteyrest          := hcm_util.get_string_t(json_obj,'p_dteyrest');
+        p_dteyreen          := hcm_util.get_string_t(json_obj,'p_dteyreen');
+
+        hcm_secur.get_global_secur(global_v_coduser,global_v_zminlvl,global_v_zwrklvl,global_v_numlvlsalst,global_v_numlvlsalen);
+    end initial_value;
+    procedure get_index(json_str_input in clob, json_str_output out clob) is
+    begin
+        initial_value(json_str_input);
+        gen_index(json_str_output);
+    end get_index;
+    procedure gen_index(json_str_output out clob) is
+    obj_rows            json_object_t       := json_object_t();
+    obj_data            json_object_t;
+    v_row               number              := 0;
+    v_codcate           tcourse.codcate%type;
+    v_evaluate          varchar2(1000 char);
+
+    cursor c1 is
+        select *
+        from thistrnn
+        where codcomp like p_codcomp || '%'
+        and codempid = nvl(p_codempid, codempid)
+        and dteyear between p_dteyrest and p_dteyreen
+        order by dteyear desc, codcours, numclseq, codempid;
+    begin
+        obj_rows := json_object_t();
+        for i in c1 loop
+            v_row := v_row+1;
+            obj_data := json_object_t();
+            begin
+                select codcate
+                into v_codcate
+                from tcourse
+                where codcours = i.codcours;
+            exception when no_data_found then
+                v_codcate := '';
+            end;
+            if i.qtyprescr > i.qtyposscr then
+                v_evaluate := get_label_name('HRMSZ9X0',global_v_lang,'60');
+            elsif i.qtyposscr > i.qtyprescr then
+                v_evaluate := get_label_name('HRMSZ9X0',global_v_lang,'50');
+            elsif i.qtyposscr = i.qtyprescr then
+                v_evaluate := get_label_name('HRMSZ9X0',global_v_lang,'70');
+            end if;
+
+            obj_data.put('coderror', 200);
+            obj_data.put('dteyear', i.dteyear);
+            obj_data.put('codcours', i.codcours);
+            obj_data.put('desc_codcours', get_tcourse_name(i.codcours, global_v_lang));
+            obj_data.put('codcate', v_codcate);
+            obj_data.put('desc_codcate', get_tcodec_name('TCODCATE', v_codcate, global_v_lang));
+            obj_data.put('desc_codtparg', get_tlistval_name('CODTPARG', i.codtparg, global_v_lang));
+            obj_data.put('numclseq', i.numclseq);
+            obj_data.put('codempid', i.codempid);
+            obj_data.put('desc_codempid', get_temploy_name(i.codempid, global_v_lang));
+            obj_data.put('dtetrst', to_char(i.dtetrst, 'dd/mm/yyyy'));
+            obj_data.put('dtetren', to_char(i.dtetren, 'dd/mm/yyyy'));
+            obj_data.put('qtytrmin', i.qtytrmin);
+            obj_data.put('amtcost', i.amtcost);
+            obj_data.put('evaluate', v_evaluate);
+            obj_data.put('filecommt', i.filecommt);
+            obj_data.put('desc_filecommt', '<a id=''' || v_row || ''' href=''' || get_tsetup_value('PATHAPI') || get_tsetup_value('PATHDOC')|| get_tfolderd('HRTR63E') || '/' || i.filecommt || ''' target=''_blank'' download>' || i.filecommt || '</a>');
+            obj_rows.put(to_char(v_row - 1), obj_data);
+        end loop;
+
+        json_str_output := obj_rows.to_clob;
+    end gen_index;
+end m_hrmsz9x;
